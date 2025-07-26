@@ -1,0 +1,84 @@
+# Date Modified: 2025-07-26
+
+cmake_minimum_required(VERSION 3.30)
+
+project(
+  GraphicsInterface
+  DESCRIPTION "Library for Graphics Programming in C and C++"
+  LANGUAGES C CXX)
+
+# Set some C and CXX Standards
+set(CMAKE_C_STANDARD 99)
+set(CMAKE_C_STANDARD_REQUIRED ON)
+
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+option(USE_GLFW "Build and link GLFW" ON)
+option(USE_GLAD "Build and link GLAD" ON)
+option(USE_GLM "Build and link GLM" ON)
+option(USE_IMGUI "Build and link ImGui" OFF)
+option(USE_STB "Build and link stb" OFF)
+
+# Set which dependencies to link against
+message(STATUS "Building with the following dependencies:")
+if(USE_GLAD)
+  list(APPEND LIBS_TO_LINK glad)
+  message(STATUS " - GLAD")
+endif()
+if(USE_GLFW)
+  list(APPEND LIBS_TO_LINK glfw)
+  message(STATUS " - GLFW")
+endif()
+if(USE_GLM)
+  list(APPEND LIBS_TO_LINK glm-header-only)
+  message(STATUS " - GLM")
+endif()
+if(USE_IMGUI)
+  list(APPEND LIBS_TO_LINK imgui)
+  message(STATUS " - ImGui")
+endif()
+if(USE_STB)
+  list(APPEND LIBS_TO_LINK stb)
+  message(STATUS " - stb")
+endif()
+
+# Throw error if doing an insource build. We don't want that
+if(${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
+  message(
+    FATAL_ERROR
+      "In-source builds not allowed. Please make a new directory (called a build directory) and run CMake from there. You may need to remove CMakeCache.txt. "
+  )
+endif()
+
+# For better lsp integration and tooling
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+# Default Build type if not specified (set to "Release")
+set(default_build_type "Release")
+if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+  message(
+    STATUS
+      "Setting build type to '${default_build_type}' as none was specified.")
+  set(CMAKE_BUILD_TYPE
+      "${default_build_type}"
+      CACHE STRING "Choose the type of build." FORCE)
+  # Set the possible values of build type for cmake-gui
+  set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release"
+                                               "MinSizeRel" "RelWithDebInfo")
+endif()
+
+# OpenGL
+find_package(OpenGL REQUIRED)
+
+# Add the external libraries
+add_subdirectory(external)
+
+# Create a linking target library
+add_library(GraphicsInterface STATIC)
+
+# link with the dependencies
+target_link_libraries(GraphicsInterface PRIVATE OpenGL::GL ${LIBS_TO_LINK})
+
+# Create an alias
+add_library(GraphicsInterface::GraphicsInterface ALIAS GraphicsInterface)
