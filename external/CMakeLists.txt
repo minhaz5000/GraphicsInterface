@@ -15,12 +15,20 @@ endif()
 if(USE_GLFW)
   # GLFW
 
-  # Turn off some unnecessary things like tests, docs and building shared libs
-  set(BUILD_SHARED_LIBS OFF)
-  set(GLFW_BUILD_EXAMPLES OFF)
-  set(GLFW_BUILD_TESTS OFF)
-  set(GLFW_BUILD_DOCS OFF)
-  set(GLFW_INSTALL OFF)
+  # Turn off some unnecessary things like tests, docs, etc.
+  set(GLFW_BUILD_EXAMPLES
+      OFF
+      CACHE BOOL "")
+  set(GLFW_BUILD_TESTS
+      OFF
+      CACHE BOOL "")
+  set(GLFW_BUILD_DOCS
+      OFF
+      CACHE BOOL "")
+  set(GLFW_INSTALL
+      OFF
+      CACHE BOOL "")
+
   add_subdirectory("glfw")
 
 endif()
@@ -33,34 +41,33 @@ if(USE_GLM)
   # Enable C++20
   set(GLM_ENABLE_CXX_20
       ON
-      CACHE BOOL "" FORCE)
+      CACHE BOOL "")
   # Disable language extensions to enforce strict standards compliance
   set(GLM_ENABLE_LANG_EXTENSIONS
       OFF
-      CACHE BOOL "" FORCE)
+      CACHE BOOL "")
   # Enable fast math approximations (better performance, less precision)
   set(GLM_FORCE_FAST_MATH
       ON
-      CACHE BOOL "" FORCE)
+      CACHE BOOL "")
   # Enable SIMD optimizations (performance boost, only if supported by your
   # target CPU)
   set(GLM_ENABLE_SIMD_SSE2
       ON
-      CACHE BOOL "" FORCE)
+      CACHE BOOL "")
   set(GLM_ENABLE_SIMD_AVX
       ON
-      CACHE BOOL "" FORCE)
-  # You usually don't want to build GLM's dummy library target
+      CACHE BOOL "")
   set(GLM_BUILD_LIBRARY
-      OFF
-      CACHE BOOL "" FORCE)
+      ON
+      CACHE BOOL "")
   # Disable install and test targets unless you need them
   set(GLM_BUILD_INSTALL
       OFF
-      CACHE BOOL "" FORCE)
+      CACHE BOOL "")
   set(GLM_BUILD_TESTS
       OFF
-      CACHE BOOL "" FORCE)
+      CACHE BOOL "")
 
   # Add GLM
   add_subdirectory("glm")
@@ -105,5 +112,7 @@ if(USE_STB)
   set(STB_DIR stb)
   # Header only library so we create an INTERFACE target
   add_library(stb INTERFACE)
-  target_include_directories(stb PUBLIC ${STB_DIR}/include)
+  target_include_directories(
+    stb INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/${STB_DIR}>
+                  $<INSTALL_INTERFACE:include>)
 endif()
