@@ -2,17 +2,17 @@
 cmake_minimum_required(VERSION 3.30)
 
 # ##############################################################################
-if(USE_GLAD)
+if(GI_USE_GLAD)
   # GLAD OpenGL 4.6 Core Profile generated from https://gen.glad.sh/
 
   # Create a glad target library
 
   # Add glad library
-  add_subdirectory("glad")
+  add_subdirectory("${GLAD_DIR}")
 
 endif()
 
-if(USE_GLFW)
+if(GI_USE_GLFW)
   # GLFW
 
   # Turn off some unnecessary things like tests, docs, etc.
@@ -29,13 +29,13 @@ if(USE_GLFW)
       OFF
       CACHE BOOL "")
 
-  add_subdirectory("glfw")
+  add_subdirectory("${GLFW_DIR}")
 
 endif()
 
 # ##############################################################################
 
-if(USE_GLM)
+if(GI_USE_GLM)
   # GLM
 
   # Enable C++20
@@ -70,20 +70,19 @@ if(USE_GLM)
       CACHE BOOL "")
 
   # Add GLM
-  add_subdirectory("glm")
+  add_subdirectory("${GLM_DIR}")
 
 endif()
 
 # ##############################################################################
 
-if(USE_IMGUI)
+if(GI_USE_IMGUI)
   # Dear Imgui Library
 
   # As there is no CMake build system provided by source, we create one
   # ourselves
 
   # we use GLFW and OpenGL in imgui
-  set(IMGUI_DIR imgui)
 
   # Create a target library called imgui
   add_library(
@@ -95,10 +94,7 @@ if(USE_IMGUI)
     ${IMGUI_DIR}/backends/imgui_impl_glfw.cpp
     ${IMGUI_DIR}/backends/imgui_impl_opengl3.cpp)
 
-  target_include_directories(
-    imgui
-    PUBLIC ${IMGUI_DIR}
-    PUBLIC ${IMGUI_DIR}/backends)
+  target_include_directories(imgui PUBLIC ${IMGUI_DIR} ${IMGUI_DIR}/backends)
 
   # Link with glfw as it is a dependency
   target_link_libraries(imgui PUBLIC OpenGL::GL glfw)
@@ -106,13 +102,10 @@ if(USE_IMGUI)
 endif()
 
 # ##############################################################################
-if(USE_STB)
+if(GI_USE_STB)
   # stb header only utilities
 
-  set(STB_DIR stb)
   # Header only library so we create an INTERFACE target
   add_library(stb INTERFACE)
-  target_include_directories(
-    stb INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/${STB_DIR}>
-                  $<INSTALL_INTERFACE:include>)
+  target_include_directories(stb INTERFACE ${STB_DIR})
 endif()

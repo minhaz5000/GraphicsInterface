@@ -14,79 +14,88 @@ set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Build Dynamic Librarirs .so/.dll. Set to OFF We build static libs
+# External directories
+set(EXTERNAL_DIR "${CMAKE_CURRENT_SOURCE_DIR}/external")
+set(GLAD_DIR "${EXTERNAL_DIR}/glad")
+set(IMGUI_DIR "${EXTERNAL_DIR}/imgui")
+set(STB_DIR "${EXTERNAL_DIR}/stb")
+set(GLFW_DIR "${EXTERNAL_DIR}/glfw")
+set(GLM_DIR "${EXTERNAL_DIR}/glm")
+
+# Build static libraries (default ON)
 set(BUILD_SHARED_LIBS
     OFF
     CACHE BOOL "Build shared libraries")
 
-option(USE_GLFW "Build and link GLFW" ON)
-option(USE_GLAD "Build and link GLAD" ON)
-option(USE_GLM "Build and link GLM" ON)
-option(USE_IMGUI "Build and link ImGui" ON)
-option(USE_STB "Build and link stb" ON)
+# Dependency toggles (can be overridden by main project or command line)
+option(GI_USE_GLAD "Enable GLAD support" ON)
+option(GI_USE_GLFW "Enable GLFW support" ON)
+option(GI_USE_IMGUI "Enable ImGui support" ON)
+option(GI_USE_GLM "Enable GLM support" ON)
+option(GI_USE_STB "Enable stb support" ON)
 
-# Set which dependencies to link against
+# Show enabled dependencies
 message(STATUS "Building with the following dependencies:")
-if(USE_GLAD)
+if(GI_USE_GLAD)
   list(APPEND LIBS_TO_LINK glad)
   message(STATUS " - GLAD")
 endif()
-if(USE_GLFW)
+if(GI_USE_GLFW)
   list(APPEND LIBS_TO_LINK glfw)
   message(STATUS " - GLFW")
 endif()
-if(USE_GLM)
-  list(APPEND LIBS_TO_LINK glm::glm)
+if(GI_USE_GLM)
+  list(APPEND LIBS_TO_LINK glm)
   message(STATUS " - GLM")
 endif()
-if(USE_IMGUI)
+if(GI_USE_IMGUI)
   list(APPEND LIBS_TO_LINK imgui)
   message(STATUS " - ImGui")
 endif()
-if(USE_STB)
+if(GI_USE_STB)
   list(APPEND LIBS_TO_LINK stb)
   message(STATUS " - stb")
 endif()
 
-# Throw error if doing an insource build. We don't want that
+# Prevent in-source builds
 if(${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
   message(
     FATAL_ERROR
-      "In-source builds not allowed. Please make a new directory (called a build directory) and run CMake from there. You may need to remove CMakeCache.txt. "
+      "In-source builds are not allowed. Please create a separate build directory."
   )
 endif()
 
-# For better lsp integration and tooling
+# Enable compile commands export for tooling
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-# Default Build type if not specified (set to "Release")
+# Default build type if none specified
 set(default_build_type "Release")
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
-  message(
-    STATUS
-      "Setting build type to '${default_build_type}' as none was specified.")
+  message(STATUS "Setting build type to '${default_build_type}'.")
   set(CMAKE_BUILD_TYPE
       "${default_build_type}"
-      CACHE STRING "Choose the type of build." FORCE)
-  # Set the possible values of build type for cmake-gui
+      CACHE STRING "Choose build type." FORCE)
   set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release"
                                                "MinSizeRel" "RelWithDebInfo")
 endif()
 
-# OpenGL
+# Find OpenGL (required)
 find_package(OpenGL REQUIRED)
 
 # Add the external libraries
-add_subdirectory(external)
+add_subdirectory(${EXTERNAL_DIR})
 
-# Create a linking target library
-add_library(GraphicsInterface SHARED src/dummy.cpp)
+# Define your GraphicsInterface library and its sources
+add_library(
+  GraphicsInterface STATIC src/GraphicsInterface/gi_stb_image.cpp
+                           src/GraphicsInterface/gi_stb_image_write.cpp)
 
-# link with the dependencies
+# Include directories for your library (public API)
+target_include_directories(GraphicsInterface
+                           PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+
+# Link the dependencies
 target_link_libraries(GraphicsInterface PUBLIC OpenGL::GL ${LIBS_TO_LINK})
 
-# export the include dirs
-target_include_directories(GraphicsInterface PUBLIC include)
-
-# Create an alias
+# Create an alias target for easier usage downstream
 add_library(GraphicsInterface::GraphicsInterface ALIAS GraphicsInterface)
