@@ -86,9 +86,8 @@ find_package(OpenGL REQUIRED)
 add_subdirectory(${EXTERNAL_DIR})
 
 # Define your GraphicsInterface library and its sources
-add_library(
-  GraphicsInterface STATIC src/GraphicsInterface/gi_stb_image.cpp
-                           src/GraphicsInterface/gi_stb_image_write.cpp)
+add_library(GraphicsInterface STATIC src/wrapper/gi_stb_image.cpp
+                                     src/wrapper/gi_stb_image_write.cpp)
 
 # Include directories for your library (public API)
 target_include_directories(GraphicsInterface
