@@ -1,20 +1,22 @@
-# Date Modified: 2025-07-26
-
 cmake_minimum_required(VERSION 3.30)
 
 project(
   GraphicsInterface
-  DESCRIPTION "Library for Graphics Programming in C++"
+  DESCRIPTION "Wrapper Library for Graphics Programming in C++"
   LANGUAGES C CXX)
 
-# Set some C and CXX Standards
+# --------------------------
+# C / C++ standards
+# --------------------------
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# --------------------------
 # External directories
+# --------------------------
 set(EXTERNAL_DIR "${CMAKE_CURRENT_SOURCE_DIR}/external")
 set(GLAD_DIR "${EXTERNAL_DIR}/glad")
 set(IMGUI_DIR "${EXTERNAL_DIR}/imgui")
@@ -22,19 +24,47 @@ set(STB_DIR "${EXTERNAL_DIR}/stb")
 set(GLFW_DIR "${EXTERNAL_DIR}/glfw")
 set(GLM_DIR "${EXTERNAL_DIR}/glm")
 
-# Build static libraries (default ON)
-set(BUILD_SHARED_LIBS
-    OFF
-    CACHE BOOL "Build shared libraries")
+# --------------------------
+# Dependency toggles
+# --------------------------
+option(GI_USE_GLAD "Enable GLAD" ON)
+option(GI_USE_GLFW "Enable GLFW" ON)
+option(GI_USE_IMGUI "Enable ImGui" ON)
+option(GI_USE_GLM "Enable GLM" ON)
+option(GI_USE_STB "Enable stb" ON)
 
-# Dependency toggles (can be overridden by main project or command line)
-option(GI_USE_GLAD "Enable GLAD support" ON)
-option(GI_USE_GLFW "Enable GLFW support" ON)
-option(GI_USE_IMGUI "Enable ImGui support" ON)
-option(GI_USE_GLM "Enable GLM support" ON)
-option(GI_USE_STB "Enable stb support" ON)
+# STB features
+option(GI_USE_STB_IMAGE "Enable STB image support" ON)
+option(GI_USE_STB_IMAGE_WRITE "Enable STB image write support" OFF)
 
-# Show enabled dependencies
+# GLM optimizations
+option(GI_GLM_FAST_MATH "Enable fast math in GLM" ON)
+option(GI_GLM_USE_SSE2 "Enable SSE2 SIMD in GLM" ON)
+option(GI_GLM_USE_AVX "Enable AVX SIMD in GLM" ON)
+
+if(GI_USE_GLM)
+  if(GI_GLM_FAST_MATH)
+    set(GLM_FORCE_FAST_MATH
+        ON
+        CACHE BOOL "")
+  endif()
+  if(GI_GLM_USE_SSE2)
+    set(GLM_ENABLE_SIMD_SSE2
+        ON
+        CACHE BOOL "")
+  endif()
+  if(GI_GLM_USE_AVX)
+    set(GLM_ENABLE_SIMD_AVX
+        ON
+        CACHE BOOL "")
+  endif()
+endif()
+
+# --------------------------
+# Add the library dependencies and show enabled dependencies
+# --------------------------
+set(LIBS_TO_LINK)
+
 message(STATUS "Building with the following dependencies:")
 if(GI_USE_GLAD)
   list(APPEND LIBS_TO_LINK glad)
@@ -57,7 +87,9 @@ if(GI_USE_STB)
   message(STATUS " - stb")
 endif()
 
+# --------------------------
 # Prevent in-source builds
+# --------------------------
 if(${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
   message(
     FATAL_ERROR
@@ -65,37 +97,58 @@ if(${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
   )
 endif()
 
-# Enable compile commands export for tooling
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-
-# Default build type if none specified
-set(default_build_type "Release")
+# --------------------------
+# Default build type
+# --------------------------
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
-  message(STATUS "Setting build type to '${default_build_type}'.")
   set(CMAKE_BUILD_TYPE
-      "${default_build_type}"
+      "Release"
       CACHE STRING "Choose build type." FORCE)
   set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release"
                                                "MinSizeRel" "RelWithDebInfo")
 endif()
 
-# Find OpenGL (required)
+# --------------------------
+# Find OpenGL
+# --------------------------
 find_package(OpenGL REQUIRED)
 
-# Add the external libraries
+# --------------------------
+# Add external libraries. see external/CMakeLists.txt
+# --------------------------
 add_subdirectory(${EXTERNAL_DIR})
 
-# Define your GraphicsInterface library and its sources
-add_library(
-  GraphicsInterface STATIC src/GraphicsInterface/gi_stb_image.cpp
-                           src/GraphicsInterface/gi_stb_image_write.cpp)
+# --------------------------
+# Library sources
+# --------------------------
+set(PROJECT_SOURCES)
 
-# Include directories for your library (public API)
+# STB wrapper sources
+if(GI_USE_STB)
+  if(GI_USE_STB_IMAGE)
+    list(APPEND PROJECT_SOURCES src/wrapper/stb/gi_stb_image.cpp)
+  endif()
+  if(GI_USE_STB_IMAGE_WRITE)
+    list(APPEND PROJECT_SOURCES src/wrapper/stb/gi_stb_image_write.cpp)
+  endif()
+endif()
+
+# --------------------------
+# Define the library
+# --------------------------
+option(BUILD_SHARED_LIBS "Build shared libraries" OFF)
+
+add_library(GraphicsInterface ${PROJECT_SOURCES})
+
+# Include directories
 target_include_directories(GraphicsInterface
                            PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
-# Link the dependencies
+# Link dependencies
 target_link_libraries(GraphicsInterface PUBLIC OpenGL::GL ${LIBS_TO_LINK})
 
-# Create an alias target for easier usage downstream
+# Alias target for easier usage downstream
 add_library(GraphicsInterface::GraphicsInterface ALIAS GraphicsInterface)
+
+# Export compile commands for IDEs / tooling
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
